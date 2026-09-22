@@ -6,7 +6,6 @@ AnyAngles generates a new camera view of one human image using an aligned 3D
 normal as spatial control.
 
 [Model card and weights](https://huggingface.co/yijunwang2/krea2-anyangles)
-| [Interactive Space](https://huggingface.co/spaces/yijunwang2/krea2-anyangles)
 
 ## What it controls
 
