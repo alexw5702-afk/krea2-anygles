@@ -184,3 +184,19 @@ class Sam3DNormalGenerator:
         if self.device.type == "cuda":
             torch.cuda.synchronize(self.device)
         return normal
+
+    def close(self) -> None:
+        """Release the mesh and FOV models before Krea 2 is loaded."""
+        import gc
+        import torch
+
+        estimator = getattr(self, "estimator", None)
+        if estimator is None:
+            return
+        for name in ("output", "image_embeddings", "batch", "model", "fov_estimator"):
+            if hasattr(estimator, name):
+                setattr(estimator, name, None)
+        self.estimator = None
+        gc.collect()
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
