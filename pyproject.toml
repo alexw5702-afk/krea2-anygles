@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "krea2-anyangles"
+version = "0.1.0"
+description = "Reference runtime for Krea 2 AnyAngles human camera control"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = [
+  "accelerate",
+  "diffusers==0.39.0",
+  "huggingface_hub",
+  "numpy",
+  "peft",
+  "pillow",
+  "pyrender",
+  "safetensors",
+  "sentencepiece",
+  "torch",
+  "torchvision",
+  "transformers>=4.57",
+  "trimesh",
+]
+
+[project.urls]
+Model = "https://huggingface.co/yijunwang2/krea2-anyangles"
+Space = "https://huggingface.co/spaces/yijunwang2/krea2-anyangles"
+Repository = "https://github.com/alexw5702-afk/krea2-anyangles"
+
+[tool.setuptools]
+py-modules = [
+  "anyangles",
+  "example",
+  "krea2_weights",
+  "prepare_normal",
+  "sam3d_normal",
+  "spatial_control_lora",
+  "switchable_lora",
+]
