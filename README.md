@@ -6,6 +6,7 @@ functional adapter. Anygles turns one human image into a controlled horizontal,
 elevated, lowered, closer, or farther camera view.
 
 [Model card and portable Diffusers example](https://huggingface.co/yijunwang2/krea2-anygles)
+| [Interactive Space](https://huggingface.co/spaces/yijunwang2/krea2-anygles)
 | [Krea 2 functional adapters collection](https://huggingface.co/collections/yijunwang2/krea-2-functional-adapters-6a700e9e5c134888d6615a5d)
 
 ![Krea 2 Anygles horizontal orbit](showcase.gif)
@@ -54,6 +55,10 @@ Takes one source image plus yaw, elevation, distance, and optional user text.
 It aligns the source canvas, recovers one human mesh, rotates around the pelvis,
 renders the target normal, and produces the complete camera prompt.
 
+Yaw, elevation, and distance can be changed independently or together. The
+current model release improves positive-elevation behavior while retaining the
+horizontal orbit and distance controls used by the original workflow.
+
 The node deliberately unloads resident Comfy models before SAM 3D Body runs and
 releases SAM before Krea 2 sampling begins. This avoids keeping both large model
 families on the GPU at once.
@@ -97,15 +102,19 @@ Recommended Krea 2 Turbo settings: 8 steps, Euler, simple scheduler, CFG 1.0,
 LoRA strength 1.0, 384px source reference, VLM reference enabled, and reference
 K/V cache enabled.
 
-This graph was validated end to end at 1008×1344 with the three linked
-Comfy-Org model files, the published Anygles adapter, SAM 3D Body normal
-preparation, and the recommended eight-step sampler settings. The raw workflow
-output is the model decode; no final source composite is applied.
+This graph was validated end to end at 1008×1344 against ComfyUI commit
+`95539f56344958339e39b7582a476267d489b0ee`, with the three linked Comfy-Org
+model files, the published Anygles adapter, SAM 3D Body normal preparation, and
+the recommended eight-step sampler settings. The raw workflow output is the
+model decode; no final source composite is applied.
 
 Yaw is relative to the input: negative values move left and positive values
 move right. Negative elevation moves the camera downward; positive elevation
 moves it upward. Distance below 1 moves closer and distance above 1 moves
 farther away. Optional text is appended after the generated camera instruction.
+The node normalizes signed yaw to the model's training-time left-only prompt
+representation (`left_angle = (-yaw) mod 360`), while the visible controls keep
+the signed left/right convention.
 
 ## Current scope
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 MAX_PIXELS = 2 * 1024 * 1024
 
@@ -34,14 +34,15 @@ def camera_prompt(yaw: float, elevation: float = 0.0, distance: float = 1.0,
         raise ValueError("Elevation must be between -60 and 60 degrees")
     if not 0.6 <= distance <= 1.8:
         raise ValueError("Distance factor must be between 0.6 and 1.8")
-    parts = ["Same figure."]
-    if yaw:
-        parts.append(
-            f"Move the camera {abs(yaw):g} degrees to the "
-            f"{'left' if yaw < 0 else 'right'} relative to the input view."
-        )
-    else:
-        parts.append("Keep the same horizontal camera angle as the input.")
+    left_angle = (-float(yaw)) % 360.0
+    if math.isclose(left_angle, 0.0, abs_tol=1e-9) or math.isclose(
+        left_angle, 360.0, abs_tol=1e-9
+    ):
+        left_angle = 0.0
+    parts = [
+        f"Same figure. Move the camera {left_angle:g} degrees to the left "
+        "relative to the input view."
+    ]
     if elevation:
         parts.append(
             f"Move the camera {abs(elevation):g} degrees "
@@ -113,10 +114,12 @@ class AnyglesRuntime:
     ) -> Image.Image:
         import torch
 
-        source = source.convert("RGB")
+        # Match prepare_normal.py for camera-originated JPEGs whose stored pixel
+        # dimensions differ from their EXIF display orientation.
+        source = ImageOps.exif_transpose(source).convert("RGB")
         width, height = canvas_size(source)
         frame = source.resize((width, height), Image.Resampling.LANCZOS)
-        target_normal = target_normal.convert("RGB")
+        target_normal = ImageOps.exif_transpose(target_normal).convert("RGB")
         if target_normal.size != (width, height):
             raise ValueError(
                 f"Target normal must match the output canvas {(width, height)}, got {target_normal.size}"
