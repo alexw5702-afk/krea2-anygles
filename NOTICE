@@ -1,24 +1,30 @@
-Krea 2 AnyAngles
+ComfyUI Krea 2 Anygles
+Copyright (c) 2026 yijunwang2
+
+This product includes software adapted from third parties:
+
+1. Reference-attention and K/V-cache machinery in krea2_anygles_core.py is
+   adapted from RealRebelAI/ComfyUI-Rebels-Krea2-Outpaint
+   (MIT License, Copyright (c) 2026 RealRebelAI).
+   https://github.com/RealRebelAI/ComfyUI-Rebels-Krea2-Outpaint
+
+2. That implementation in turn adapts reference-attention machinery from
+   ostris/ComfyUI-Krea2-Ostris-Edit
+   (MIT License, Copyright (c) 2026 Ostris, LLC).
+   https://github.com/ostris/ComfyUI-Krea2-Ostris-Edit
+
+3. Source-reference conditioning and spatial-control injection reproduce the
+   behavior of the yijunwang2/krea2-anygles Diffusers reference runtime
+   (Apache-2.0 pipeline/helper code; portions Copyright (c) 2026 Ostris, LLC,
+   Krea AI, and The HuggingFace Team).
+   https://huggingface.co/yijunwang2/krea2-anygles
+
+4. Automatic human-mesh preprocessing vendors inference source from
+   facebookresearch/sam-3d-body under the SAM License. The SAM 3D Body model
+   weights are not included.
+   https://github.com/facebookresearch/sam-3d-body
 
 Krea 2 is licensed under the Krea 2 Community License Agreement.
 For more information, visit https://krea.ai/krea-2-licensing.
 
-This repository contains a modified derivative of Krea 2: Krea 2 AnyAngles, a
-rank-32 spatial Control-LoRA that adds camera-view control for human images.
-
-Use, modification, and distribution of the model weights are subject to the
-Krea 2 Community License Agreement included as LICENSE.pdf.
-
-The included reference pipeline is derived from ostris/Krea2OstrisEdit and
-contains modifications from the Krea 2 AnyPaint runtime. Pipeline and original
-AnyAngles helper code are distributed under Apache License 2.0.
-
-Automatic human-mesh preprocessing uses SAM 3D Body when enabled. SAM 3D Body
-is a separate dependency distributed by Meta under the SAM License; its model
-weights are not included here. See https://github.com/facebookresearch/sam-3d-body.
-
-Krea 2: https://huggingface.co/krea/Krea-2-Turbo
-Upstream edit pipeline: https://huggingface.co/ostris/Krea2OstrisEdit
-
-This is an unofficial community release and is not endorsed by Krea, Meta, or
-Ostris. Training data and training infrastructure are not included.
+The Krea 2 Anygles LoRA weights are not included in this repository.

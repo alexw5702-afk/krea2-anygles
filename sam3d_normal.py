@@ -101,7 +101,7 @@ def _render(vertices, faces, camera, focal, width, height, scale, offset):
 
 
 class Sam3DNormalGenerator:
-    """Recover one human mesh and render an AnyAngles target normal."""
+    """Recover one human mesh and render an Anygles target normal."""
 
     def __init__(
         self,

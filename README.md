@@ -1,93 +1,125 @@
-# Krea 2 AnyAngles
+# ComfyUI Krea 2 Anygles
 
-Reference runtime and preprocessing helpers for
-[`yijunwang2/krea2-anyangles`](https://huggingface.co/yijunwang2/krea2-anyangles).
-AnyAngles generates a new camera view of one human image using an aligned 3D
-normal as spatial control.
+Native ComfyUI nodes for the
+[`yijunwang2/krea2-anygles`](https://huggingface.co/yijunwang2/krea2-anygles)
+functional adapter. Anygles turns one human image into a controlled horizontal,
+elevated, lowered, closer, or farther camera view.
 
-[Model card and weights](https://huggingface.co/yijunwang2/krea2-anyangles)
+[Model card and portable Diffusers example](https://huggingface.co/yijunwang2/krea2-anygles)
+| [Krea 2 functional adapters collection](https://huggingface.co/collections/yijunwang2/krea-2-functional-adapters-6a700e9e5c134888d6615a5d)
 
-## What it controls
-
-- horizontal orbit from −180° to +180°;
-- camera elevation from −60° to +60°;
-- camera distance from 0.6× to 1.8×;
-- optional user text appended to the generated camera instruction.
-
-The current model is intended for one clear human subject. It does not support
-animals, arbitrary objects, or crowds.
+![Krea 2 Anygles horizontal orbit](showcase.gif)
 
 ## Install
 
 ```bash
-git clone https://github.com/alexw5702-afk/krea2-anyangles
-cd krea2-anyangles
-pip install -e .
+cd ComfyUI/custom_nodes
+git clone https://github.com/alexw5702-afk/krea2-anygles
+cd krea2-anygles
+pip install -r requirements.txt
 ```
 
-Krea 2 Turbo is gated; accept its license and authenticate with Hugging Face.
-For automatic normal preparation, separately install
-[`facebookresearch/sam-3d-body`](https://github.com/facebookresearch/sam-3d-body),
-accept the SAM license, and download its checkpoint and MHR asset. The Krea and
-SAM model weights are not stored in this repository.
-
-## Generate an aligned normal
+Accept the SAM 3D Body license and download its complete checkpoint repository:
 
 ```bash
-python prepare_normal.py \
-  --source person.webp \
-  --output target_normal.png \
-  --yaw 50 \
-  --elevation 0 \
-  --distance 1.0 \
-  --sam3d-root /path/to/sam-3d-body \
-  --checkpoint /path/to/model.ckpt \
-  --mhr-model /path/to/assets/mhr_model.pt
+hf download facebook/sam-3d-body-dinov3 \
+  --local-dir ComfyUI/models/sam3d_body
 ```
 
-The helper preserves the source aspect ratio, aligns dimensions to 16 pixels,
-recovers one human mesh, rotates it around the pelvis, and renders the control
-inside the output canvas. `distance < 1` moves closer; `distance > 1` moves
-farther away.
+Restart ComfyUI and place `krea2_anygles_rank32.safetensors` in
+`ComfyUI/models/loras`.
 
-## Generate one image
+## Requirements
 
-```bash
-python example.py \
-  --source person.webp \
-  --normal target_normal.png \
-  --output result.webp \
-  --yaw 50 \
-  --elevation 0 \
-  --distance 1.0 \
-  --prompt "soft afternoon light" \
-  --steps 8 \
-  --seed 42
+- A current ComfyUI build with native Krea 2 support.
+- [`krea2_turbo_int8_convrot.safetensors`](https://huggingface.co/Comfy-Org/Krea-2/blob/main/diffusion_models/krea2_turbo_int8_convrot.safetensors)
+  in `ComfyUI/models/diffusion_models`.
+- [`qwen3vl_4b_fp8_scaled.safetensors`](https://huggingface.co/Comfy-Org/Krea-2/blob/main/text_encoders/qwen3vl_4b_fp8_scaled.safetensors)
+  in `ComfyUI/models/text_encoders`.
+- [`qwen_image_vae.safetensors`](https://huggingface.co/Comfy-Org/Krea-2/blob/main/vae/qwen_image_vae.safetensors)
+  in `ComfyUI/models/vae`.
+- [Krea 2 Anygles LoRA](https://huggingface.co/yijunwang2/krea2-anygles/blob/main/krea2_anygles_rank32.safetensors)
+  in `ComfyUI/models/loras`.
+- `facebook/sam-3d-body-dinov3` under `ComfyUI/models/sam3d_body`, including
+  `model.ckpt`, `model_config.yaml`, and `assets/mhr_model.pt`.
+
+MoGe is installed from its pinned upstream revision by `requirements.txt` and
+downloads its public FOV model on first use.
+
+## Nodes
+
+### Krea2 Anygles Camera
+
+Takes one source image plus yaw, elevation, distance, and optional user text.
+It aligns the source canvas, recovers one human mesh, rotates around the pelvis,
+renders the target normal, and produces the complete camera prompt.
+
+The node deliberately unloads resident Comfy models before SAM 3D Body runs and
+releases SAM before Krea 2 sampling begins. This avoids keeping both large model
+families on the GPU at once.
+
+### Krea2 Anygles Encode
+
+Encodes the source twice according to the validated inference contract:
+
+- a maximum-edge-384 clean Krea 2 reference and optional Qwen3-VL image input;
+- a full-canvas VAE latent of the aligned target normal.
+
+It returns the positive conditioning and one `ANYGLES_CONTROL` object for the
+model patch.
+
+### Krea2 Anygles Load LoRA
+
+Loads the regular adapter tensors into Krea 2 and retains
+`transformer.first_control.weight` separately. An ordinary LoRA loader skips
+that spatial projection and therefore cannot reproduce the model.
+
+### Krea2 Anygles Model Patch
+
+Injects target-normal tokens through the spatial projection at the noisy image
+input. The clean source reference is processed at timestep zero and its K/V is
+cached once per sampling run.
+
+## Workflow
+
+Drag [`krea2_anygles_workflow.json`](krea2_anygles_workflow.json) into ComfyUI.
+The important wiring is:
+
+```text
+Load Image -> Anygles Camera -> Anygles Encode
+Load Diffusion Model -> Anygles Load LoRA -> Anygles Model Patch -> KSampler
+Anygles Encode.positive -> KSampler.positive
+Anygles Camera.width/height -> EmptySD3LatentImage -> KSampler.latent_image
+KSampler -> VAE Decode -> Save Image
 ```
 
-The reference pipeline sends the original image to both Qwen3-VL and Krea 2's
-clean visual-reference path. The target normal enters the spatial Control-LoRA
-at the output canvas resolution. The camera sentence is generated from the
-three controls, and optional text is appended unchanged.
+Recommended Krea 2 Turbo settings: 8 steps, Euler, simple scheduler, CFG 1.0,
+LoRA strength 1.0, 384px source reference, VLM reference enabled, and reference
+K/V cache enabled.
 
-Recommended Krea 2 Turbo settings: eight steps, guidance scale 0, adapter
-strength 1.0, a 384px visual reference, and one full-canvas target normal.
+This graph was validated end to end at 1008×1344 with the three linked
+Comfy-Org model files, the published Anygles adapter, SAM 3D Body normal
+preparation, and the recommended eight-step sampler settings. The raw workflow
+output is the model decode; no final source composite is applied.
 
-## Files
+Yaw is relative to the input: negative values move left and positive values
+move right. Negative elevation moves the camera downward; positive elevation
+moves it upward. Distance below 1 moves closer and distance above 1 moves
+farther away. Optional text is appended after the generated camera instruction.
 
-- `anyangles.py`: prompt, canvas, normal encoding, and generation wrapper;
-- `sam3d_normal.py`: SAM 3D Body mesh recovery and normal rendering;
-- `prepare_normal.py`: preprocessing CLI;
-- `example.py`: one-image inference CLI;
-- `spatial_control_lora.py`: spatial projection and control-token injection;
-- `switchable_lora.py` / `krea2_weights.py`: Krea 2 adapter loading and key mapping.
+## Current scope
 
-## License
+The model supports one clear human subject. It is not designed for animals,
+general objects, crowds, or exact 3D scene reconstruction. Hidden surfaces and
+background details are generated and can change at large camera movements.
 
-Original runtime code in this repository is Apache-2.0; see `LICENSE` and
-`NOTICE`. The AnyAngles model weights are distributed separately under the
-[Krea 2 Community License Agreement](https://krea.ai/krea-2-licensing).
-SAM 3D Body is a separate dependency under the SAM License.
+## Credits and license
 
-This is an unofficial community project and is not endorsed by Krea or Meta.
-Training data and training infrastructure are not included.
+Reference-attention and K/V-cache code is adapted from
+[`RealRebelAI/ComfyUI-Rebels-Krea2-Outpaint`](https://github.com/RealRebelAI/ComfyUI-Rebels-Krea2-Outpaint)
+and [`ostris/ComfyUI-Krea2-Ostris-Edit`](https://github.com/ostris/ComfyUI-Krea2-Ostris-Edit).
+See `NOTICE` for the attribution chain.
+
+Custom node code is MIT licensed. Vendored SAM 3D Body inference source remains
+under `SAM_LICENSE`. The separately downloaded Anygles LoRA is a Krea 2
+derivative and remains subject to the Krea 2 Community License.

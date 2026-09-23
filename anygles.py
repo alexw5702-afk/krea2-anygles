@@ -5,9 +5,6 @@ from pathlib import Path
 
 from PIL import Image
 
-from spatial_control_lora import SpatialControlLoRAController
-
-
 MAX_PIXELS = 2 * 1024 * 1024
 
 
@@ -71,18 +68,22 @@ def resize_reference(image: Image.Image, max_edge: int = 384) -> Image.Image:
     return image.resize(size, Image.Resampling.LANCZOS)
 
 
-class AnyAnglesRuntime:
-    """Apply the AnyAngles Control-LoRA to a Krea 2 reference pipeline."""
+class AnyglesRuntime:
+    """Apply the Anygles Control-LoRA to a Krea 2 reference pipeline."""
 
     def __init__(self, pipeline, checkpoint: str | Path, *, device: str = "cuda"):
+        # Keep prompt/canvas helpers importable from the lightweight ComfyUI
+        # camera node without pulling in the portable Diffusers adapter stack.
+        from spatial_control_lora import SpatialControlLoRAController
+
         self.pipeline = pipeline
         self.device = device
         self.controller = SpatialControlLoRAController(
             pipeline.transformer,
-            {"anyangles": Path(checkpoint)},
+            {"anygles": Path(checkpoint)},
             device=device,
         )
-        self.controller.activate("anyangles")
+        self.controller.activate("anygles")
 
     def encode_normal(self, normal: Image.Image, width: int, height: int, seed: int):
         import torch
