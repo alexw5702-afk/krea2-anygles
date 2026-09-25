@@ -13,22 +13,37 @@ elevated, lowered, closer, or farther camera view.
 
 ## Install
 
+Run these commands from the `ComfyUI` directory, using the Python environment
+that starts ComfyUI:
+
 ```bash
-cd ComfyUI/custom_nodes
-git clone https://github.com/alexw5702-afk/krea2-anygles
-cd krea2-anygles
-pip install -r requirements.txt
+git clone https://github.com/alexw5702-afk/krea2-anygles custom_nodes/krea2-anygles
+python -m pip install -r custom_nodes/krea2-anygles/requirements.txt
 ```
 
 Accept the SAM 3D Body license and download its complete checkpoint repository:
 
 ```bash
 hf download facebook/sam-3d-body-dinov3 \
-  --local-dir ComfyUI/models/sam3d_body
+  --local-dir models/sam3d_body
 ```
 
 Restart ComfyUI and place `krea2_anygles_rank32.safetensors` in
 `ComfyUI/models/loras`.
+
+For **Windows ComfyUI portable**, run the following from its top-level
+`ComfyUI_windows_portable` directory instead:
+
+```powershell
+git clone https://github.com/alexw5702-afk/krea2-anygles .\ComfyUI\custom_nodes\krea2-anygles
+.\python_embeded\python.exe -m pip install -r .\ComfyUI\custom_nodes\krea2-anygles\requirements.txt
+hf download facebook/sam-3d-body-dinov3 --local-dir .\ComfyUI\models\sam3d_body
+```
+
+The normal renderer uses Linux EGL only on Linux. On Windows it uses
+`pyrender`'s default OpenGL context, so restart ComfyUI after updating the
+node. Use a CUDA-enabled NVIDIA PyTorch build for SAM 3D Body and the
+recommended Krea 2 workflow.
 
 ## Requirements
 

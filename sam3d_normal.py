@@ -4,7 +4,8 @@ import os
 import sys
 from pathlib import Path
 
-os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
+if sys.platform == "linux":
+    os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
 
 import numpy as np
 from PIL import Image

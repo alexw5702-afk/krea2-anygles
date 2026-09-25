@@ -2,8 +2,10 @@
 
 import os
 
-if "PYOPENGL_PLATFORM" not in os.environ:
-    os.environ["PYOPENGL_PLATFORM"] = "egl"
+import sys
+
+if sys.platform == "linux":
+    os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
 from typing import List, Optional
 
 import cv2
