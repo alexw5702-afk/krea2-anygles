@@ -13,5 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      # Hosted Windows runners expose only OpenGL 1.1; use software GL for CI.
+      - uses: f3d-app/install-mesa-windows-action@b78081f8331c5d49d71b221ca13a25fd97dac165
+        with:
+          path: ${{ env.pythonLocation }}
+          version: 23.3.5
       - run: python -m pip install numpy pillow pyrender 'pyglet<2' trimesh
       - run: python tests/windows_render_smoke.py
