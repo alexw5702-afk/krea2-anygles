@@ -119,6 +119,7 @@ class Krea2AnyglesCamera:
             checkpoint,
             mhr_model,
             device=str(device),
+            isolate_renderer=True,
         )
         try:
             normal = generator(

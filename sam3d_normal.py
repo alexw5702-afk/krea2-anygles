@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -101,6 +103,61 @@ def _render(vertices, faces, camera, focal, width, height, scale, offset):
     return Image.fromarray(fused, mode="RGB")
 
 
+def _render_in_subprocess(vertices, faces, camera, focal, width, height, scale, offset):
+    """Keep OpenGL initialization separate from an embedding application's state."""
+    payload = io.BytesIO()
+    np.savez(
+        payload,
+        vertices=vertices,
+        faces=faces,
+        camera=camera,
+        focal=focal,
+        width=width,
+        height=height,
+        scale=scale,
+        offset=offset,
+    )
+    environment = os.environ.copy()
+    if sys.platform == "linux":
+        environment["PYOPENGL_PLATFORM"] = "egl"
+    elif sys.platform == "win32":
+        environment.pop("PYOPENGL_PLATFORM", None)
+    result = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--render-worker"],
+        input=payload.getvalue(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=environment,
+        timeout=120,
+        check=False,
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+    )
+    if result.returncode:
+        detail = result.stderr.decode("utf-8", errors="replace")[-4000:]
+        raise RuntimeError(f"Anygles normal renderer failed ({result.returncode}): {detail}")
+    with Image.open(io.BytesIO(result.stdout)) as image:
+        normal = image.convert("RGB")
+        normal.load()
+    if normal.size != (width, height):
+        raise RuntimeError(f"Anygles renderer returned {normal.size}, expected {(width, height)}")
+    return normal
+
+
+def _render_worker() -> None:
+    with np.load(io.BytesIO(sys.stdin.buffer.read()), allow_pickle=False) as payload:
+        normal = _render(
+            payload["vertices"],
+            payload["faces"],
+            payload["camera"],
+            float(payload["focal"]),
+            int(payload["width"]),
+            int(payload["height"]),
+            float(payload["scale"]),
+            payload["offset"],
+        )
+    normal.save(sys.stdout.buffer, format="PNG")
+
+
 class Sam3DNormalGenerator:
     """Recover one human mesh and render an Anygles target normal."""
 
@@ -112,6 +169,7 @@ class Sam3DNormalGenerator:
         *,
         moge_model: str = "Ruicheng/moge-2-vitl-normal",
         device: str = "cuda",
+        isolate_renderer: bool = False,
     ):
         import torch
 
@@ -122,6 +180,7 @@ class Sam3DNormalGenerator:
         from tools.build_fov_estimator import FOVEstimator
 
         self.device = torch.device(device)
+        self.isolate_renderer = isolate_renderer
         model, config = load_sam_3d_body(
             str(Path(checkpoint).expanduser()),
             device=self.device,
@@ -171,7 +230,8 @@ class Sam3DNormalGenerator:
         scaled = (projected - np.array([width / 2, height / 2])) * scale
         center = (scaled.min(0) + scaled.max(0)) * 0.5
         offset = -center
-        normal = _render(
+        render = _render_in_subprocess if self.isolate_renderer else _render
+        normal = render(
             orbit_vertices,
             self.estimator.faces,
             camera,
@@ -201,3 +261,9 @@ class Sam3DNormalGenerator:
         gc.collect()
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] != ["--render-worker"]:
+        raise SystemExit("sam3d_normal.py is an internal Anygles renderer")
+    _render_worker()

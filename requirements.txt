@@ -18,8 +18,7 @@ pytorch-lightning
 roma
 scikit-image
 timm
-torch
-torchvision
+# PyTorch and torchvision come from the CUDA-enabled ComfyUI installation.
 trimesh
 yacs
 git+https://github.com/microsoft/MoGe.git@07444410f1e33f402353b99d6ccd26bd31e469e8

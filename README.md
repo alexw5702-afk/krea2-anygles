@@ -14,12 +14,26 @@ elevated, lowered, closer, or farther camera view.
 ## Install
 
 Run these commands from the `ComfyUI` directory, using the Python environment
-that starts ComfyUI:
+that starts ComfyUI. Check the CUDA build before installing dependencies and
+again afterwards:
+
+```bash
+python -c "import torch, torchvision; print('torch', torch.__version__, 'torchvision', torchvision.__version__, 'CUDA', torch.cuda.is_available()); assert torch.cuda.is_available()"
+```
 
 ```bash
 git clone https://github.com/alexw5702-afk/krea2-anygles custom_nodes/krea2-anygles
 python -m pip install -r custom_nodes/krea2-anygles/requirements.txt
+python -m pip install 'PyOpenGL==3.1.10'
 ```
+
+The node requirements do not list `torch` or `torchvision` directly; ComfyUI's
+CUDA-enabled builds must remain available. Other packages can still request
+PyTorch transitively, so compare the printed versions before and after install.
+The final PyOpenGL command restores a tested version satisfying ComfyUI's
+current requirement (`>=3.1.8`): `pyrender`
+currently declares an older exact version, although the normal renderer is
+tested with both. Pip may report that metadata conflict.
 
 Accept the SAM 3D Body license and download its complete checkpoint repository:
 
@@ -37,13 +51,32 @@ For **Windows ComfyUI portable**, run the following from its top-level
 ```powershell
 git clone https://github.com/alexw5702-afk/krea2-anygles .\ComfyUI\custom_nodes\krea2-anygles
 .\python_embeded\python.exe -m pip install -r .\ComfyUI\custom_nodes\krea2-anygles\requirements.txt
-hf download facebook/sam-3d-body-dinov3 --local-dir .\ComfyUI\models\sam3d_body
+.\python_embeded\python.exe -m pip install "PyOpenGL==3.1.10"
+.\python_embeded\Scripts\hf.exe download facebook/sam-3d-body-dinov3 --local-dir .\ComfyUI\models\sam3d_body
 ```
 
+For portable ComfyUI, replace `python` in the CUDA check above with
+`.\python_embeded\python.exe` and run it before and after the install command.
+
 The normal renderer uses Linux EGL only on Linux. On Windows it uses
-`pyrender`'s default OpenGL context, so restart ComfyUI after updating the
-node. Use a CUDA-enabled NVIDIA PyTorch build for SAM 3D Body and the
-recommended Krea 2 workflow.
+`pyrender`'s default OpenGL context. The Camera node renders in a short-lived
+Python subprocess to isolate OpenGL from other ComfyUI nodes. Restart ComfyUI
+after updating the node. Use a CUDA-enabled NVIDIA PyTorch build for SAM 3D
+Body and the recommended Krea 2 workflow.
+
+If the normal renderer fails, run this small check with the same Python that
+starts ComfyUI, from `ComfyUI/custom_nodes/krea2-anygles`:
+
+```bash
+python tests/render_smoke.py
+```
+
+It renders a synthetic articulated mesh at three camera positions, checks
+normal and depth variation, compares direct and isolated rendering, and prints
+renderer package versions on failure. It does not test the full Camera/SAM/Krea
+workflow, download weights, or save images. On Windows portable, run
+`.\python_embeded\python.exe .\ComfyUI\custom_nodes\krea2-anygles\tests\render_smoke.py`
+from the top-level portable directory.
 
 ## Requirements
 
