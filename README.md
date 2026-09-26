@@ -31,9 +31,9 @@ The node requirements do not list `torch` or `torchvision` directly; ComfyUI's
 CUDA-enabled builds must remain available. Other packages can still request
 PyTorch transitively, so compare the printed versions before and after install.
 The final PyOpenGL command restores a tested version satisfying ComfyUI's
-current requirement (`>=3.1.8`): `pyrender`
-currently declares an older exact version, although the normal renderer is
-tested with both. Pip may report that metadata conflict.
+current requirement (`>=3.1.8`). `pyrender` currently declares an older exact
+version, although the normal renderer is tested with both. Pip may report that
+metadata conflict.
 
 Accept the SAM 3D Body license and download its complete checkpoint repository:
 
